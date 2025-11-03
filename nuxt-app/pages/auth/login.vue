@@ -67,6 +67,15 @@
           {{ loading ? 'ログイン中...' : 'ログイン' }}
         </button>
 
+        <button
+          type="button"
+          class="demo-button"
+          @click="handleDemoLogin"
+          :disabled="loading"
+        >
+          🌱 デモアカウントでログイン
+        </button>
+
         <div class="form-footer">
           <NuxtLink to="/auth/forgot-password">パスワードを忘れた方はこちら</NuxtLink>
         </div>
@@ -256,6 +265,21 @@ const handleLogin = async () => {
     loading.value = false
   }
 }
+
+const handleDemoLogin = async () => {
+  // デモアカウントの情報を自動入力
+  form.email = 'demo-user@example.com'
+  form.password = 'demo1234'
+
+  // エラーをクリア
+  errors.value = {}
+
+  // 少し待ってからログイン実行（ユーザーが情報を確認できるように）
+  await new Promise(resolve => setTimeout(resolve, 300))
+
+  // ログイン処理を実行
+  await handleLogin()
+}
 </script>
 
 <style scoped>
@@ -410,6 +434,30 @@ const handleLogin = async () => {
 
 .submit-button.disabled:hover {
     background-color: #ddd;
+}
+
+.demo-button {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+    font-size: 1rem;
+    font-weight: 400;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.demo-button:hover:not(:disabled) {
+    background-color: #ffe69c;
+    border-color: #ffb300;
+}
+
+.demo-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .form-footer {
