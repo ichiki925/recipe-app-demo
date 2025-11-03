@@ -73,7 +73,7 @@
           @click="handleDemoLogin"
           :disabled="loading"
         >
-          🌱 デモアカウントでログイン
+          🔑 デモアカウントでログイン
         </button>
 
         <div class="form-footer">

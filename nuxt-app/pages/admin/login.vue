@@ -32,6 +32,15 @@
         <button type="submit" class="submit-button" :disabled="localLoading || loading">
           {{ (localLoading || loading) ? 'ログイン中...' : 'ログイン' }}
         </button>
+
+        <button
+          type="button"
+          class="demo-button"
+          @click="handleDemoLogin"
+          :disabled="localLoading || loading"
+        >
+          🔑 デモ管理者でログイン
+        </button>
         <div class="form-footer">
           <NuxtLink to="/admin/forgot-password" class="forgot-link">パスワードを忘れた場合はこちら</NuxtLink>
         </div>
@@ -106,6 +115,21 @@ const handleLogin = async () => {
   } finally {
     localLoading.value = false
   }
+}
+
+const handleDemoLogin = async () => {
+  // デモ管理者アカウントの情報を自動入力
+  form.value.email = 'demo-admin@example.com'
+  form.value.password = 'DemoAdmin1234'
+
+  // エラーをクリア
+  errors.value = { email: '', password: '', general: '' }
+
+  // 少し待ってからログイン実行（ユーザーが情報を確認できるように）
+  await new Promise(resolve => setTimeout(resolve, 300))
+
+  // ログイン処理を実行
+  await handleLogin()
 }
 
 onUnmounted(() => {
@@ -235,6 +259,31 @@ onUnmounted(() => {
 .submit-button:disabled {
   background: #e0e0e0;
   color: #999;
+  cursor: not-allowed;
+}
+
+.demo-button {
+  width: 100%;
+  padding: 12px;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: normal;
+  cursor: pointer;
+  margin-top: 12px;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.demo-button:hover:not(:disabled) {
+  background: #ffe69c;
+  border-color: #ffb300;
+}
+
+.demo-button:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
