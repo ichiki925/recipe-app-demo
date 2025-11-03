@@ -1,0 +1,138 @@
+ul,
+li,
+a,
+button {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    text-decoration: none;
+    border: none;
+    background: none;
+}
+
+body {
+    color: #111;
+}
+
+header {
+    background-color: #ddd;
+    color: #000;
+    padding: 10px 20px;
+}
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+}
+
+.logo-title:hover {
+    color: #888;
+}
+
+.logo-title:active {
+    opacity: 0.6;
+}
+
+.logo {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.logo:hover { 
+    color: #888;
+}
+
+.logo:active {
+    opacity: 0.6;
+}
+
+.logo-image {
+    height: 50px;
+    display: block;
+}
+
+.logo-text {
+    font-family: 'Italianno', cursive;
+    font-size: 3rem;
+    font-weight: 400;
+    line-height: 1;
+    margin: 0;
+    transform: translateY(2px);
+}
+
+nav {
+    flex-grow: 1;
+    display: flex;
+    justify-content: flex-end; }
+
+nav ul {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 0;
+    padding: 0;
+}
+
+nav li {
+    list-style: none;
+}
+
+.nav-link {
+    display: flex;
+    /* ベースラインのズレ防止 */
+    align-items: center;
+    /* 縦中央を保証 */
+    font-family: 'Italianno', cursive;
+    font-size: 2rem;
+    line-height: 1;
+    color: #111;
+    background: none;
+    border: 0;
+    padding: 0;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color .2s;
+}
+
+.nav-link:hover {
+    color: #888;
+}
+
+.active {
+    opacity: .85;
+}
+
+@media (max-width: 768px) {
+    header .container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .logo {
+        justify-content: center;
+        width: 100%;
+    }
+
+    nav ul {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    nav ul li {
+        width: 100%;
+    }
+
+    nav ul li a {
+        font-size: 18px;
+        display: block;
+        padding: 5px 0;
+    }
+}
