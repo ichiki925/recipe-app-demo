@@ -678,12 +678,8 @@ class RecipeController extends Controller
             $recipe = Recipe::withTrashed()
                 ->with([
                     'admin',
-                    'comments' => function($query) {
-                        $query->with('user')->orderBy('created_at', 'desc');
-                    },
-                    'likes' => function($query) {
-                        $query->with('user')->orderBy('created_at', 'desc');
-                    }
+                    'comments.user:id,name,username,avatar_url',
+                    'likes.user:id,name,username,avatar_url',
                 ])
                 ->withCount('likes')
                 ->find($id);
@@ -973,12 +969,12 @@ class RecipeController extends Controller
 
                 // URLからファイルパスを抽出（修正版）
                 $parsedUrl = parse_url($imageUrl);
-                
+
                 // /v0/b/bucket/o/encoded_file_path から encoded_file_path を抽出
                 if (isset($parsedUrl['path']) && preg_match('/\/o\/(.+)/', $parsedUrl['path'], $matches)) {
                     $encodedFileName = $matches[1];
                     $fileName = urldecode($encodedFileName);
-                    
+
                     \Log::info('Extracted file path for deletion', [
                         'original_url' => $imageUrl,
                         'encoded_path' => $encodedFileName,

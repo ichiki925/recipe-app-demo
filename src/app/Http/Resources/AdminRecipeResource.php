@@ -120,6 +120,10 @@ class AdminRecipeResource extends JsonResource
                         'user' => [
                             'id' => $comment->user->id ?? null,
                             'name' => $comment->user->name ?? 'ゲスト',
+
+                            'avatar'      => $comment->user->avatar_url ?? null,
+                            'avatar_url'  => $comment->user->avatar_url ?? null,
+                            'avatar_path' => $comment->user->avatar_url ?? null,
                         ],
                         'created_at' => $comment->created_at->toISOString(),
                     ];

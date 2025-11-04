@@ -14,6 +14,10 @@ class AdminUserResource extends JsonResource
             'name' => $this->name,
             'role' => $this->role,
 
+            'avatar'      => $this->avatar_url,
+            'avatar_url'  => $this->avatar_url,
+            'avatar_path' => $this->avatar_url,
+
             // ロール情報
             'role_info' => [
                 'text' => $this->role === 'admin' ? '管理者' : 'ユーザー',

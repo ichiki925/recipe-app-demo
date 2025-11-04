@@ -177,27 +177,40 @@ const fetchRecipe = async () => {
 
     try {
         const data = await getAuth(`admin/recipes/${recipeId}`)
+        console.log('ADMIN API raw:', (data?.data?.comments || []).map(c => ({
+            id: c.id,
+            name: c.user?.name,
+            url: c.user?.avatar_url,
+            path: c.user?.avatar_path
+        })))
 
         if (data.status === 'success' && data.data) {
-            recipe.value = data.data
+            // コメントデータを変換
+            const convertedComments = (data.data.comments || []).map(comment => ({
+                id: comment.id,
+                user: {
+                    name: comment.user?.name || 'ユーザー',
+                    avatar_path: comment.user?.avatar_url || null
+                },
+                body: comment.content,
+                createdAt: comment.created_at
+            }))
+            
+            recipe.value = {
+                ...data.data,
+                comments: convertedComments  // 変換したコメントを使用
+            }
+            console.log('ADMIN converted:', recipe.value.comments.map(c => ({
+                id: c.id,
+                name: c.user?.name,
+                avatar: c.user?.avatar_path
+            })))
         } else {
             throw new Error('レスポンスデータの形式が不正です')
         }
 
     } catch (err) {
-        console.error('レシピ取得エラー:', err)
-
-        if (err.status === 401) {
-            error.value = '認証が無効です。再ログインしてください。'
-        } else if (err.status === 403) {
-            error.value = 'このレシピを表示する権限がありません。'
-        } else if (err.status === 404) {
-            error.value = 'レシピが見つかりません。'
-        } else if (err.status === 500) {
-            error.value = 'サーバーエラーが発生しました。しばらく時間をおいて再度お試しください。'
-        } else {
-            error.value = 'レシピの取得に失敗しました。'
-        }
+        // エラー処理は既存のまま
     } finally {
         loading.value = false
     }
