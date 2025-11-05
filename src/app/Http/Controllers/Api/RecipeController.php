@@ -8,6 +8,7 @@ use App\Http\Resources\RecipeResource;
 use App\Http\Resources\RecipeCollection;
 use App\Http\Resources\AdminRecipeResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Intervention\Image\ImageManagerStatic as Image;
@@ -238,32 +239,27 @@ class RecipeController extends Controller
             if (!$user || !$user->isAdmin()) {
                 return response()->json(['error' => '認証または権限エラー'], 403);
             }
+            
+            \Log::info('store payload', $request->only(['temp_image_url', 'image']));
 
+            
             $imageUrl = null;
-
-            // 1. temp_image_urlが送信された場合の処理（優先）
-            if ($request->has('temp_image_url') && !empty($request->temp_image_url)) {
-                try {
-                    $imageUrl = $this->moveTempImageToPermanent($request->temp_image_url);
-                    \Log::info('Temp image moved to permanent storage', [
-                        'temp_url' => $request->temp_image_url,
-                        'permanent_url' => $imageUrl
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::error('Failed to move temp image', [
-                        'temp_url' => $request->temp_image_url,
-                        'error' => $e->getMessage()
-                    ]);
-                    // temp_image_urlの処理に失敗した場合は通常のアップロード処理に進む
+            
+            // ① Firebase直アップのURLをそのまま保存（推奨パス）
+            if ($request->filled('temp_image_url')) {
+                $url  = $request->input('temp_image_url');
+                $host = parse_url($url, PHP_URL_HOST);
+                $allowed = ['firebasestorage.googleapis.com', 'firebasestorage.app'];
+                if ($host && Str::endsWith($host, $allowed)) {
+                    $imageUrl = $url;
+                } else {
+                    \Log::warning('Rejected temp_image_url host on store', ['host' => $host, 'url' => $url]);
                 }
-            }
 
-            // 2. 通常のファイルアップロード処理（temp_image_urlがない場合、または処理に失敗した場合）
-            if (!$imageUrl && $request->hasFile('image')) {
-                $imageUrl = $this->uploadToFirebaseStorage($request->file('image'));
-                \Log::info('Image uploaded to Firebase Storage', [
-                    'url' => $imageUrl
-                ]);
+            // ② フロントからファイルが直送されてきた場合のフォールバック（ローカル保存）
+            } elseif ($request->hasFile('image')) {
+                $path = $request->file('image')->store('public/recipes');
+                $imageUrl = Storage::url($path); // "/storage/xxx"
             }
 
 
@@ -303,7 +299,6 @@ class RecipeController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('Recipe store error: ' . $e->getMessage());
-
             return response()->json([
                 'status' => 'error',
                 'message' => 'レシピの作成に失敗しました: ' . $e->getMessage()
@@ -340,56 +335,60 @@ class RecipeController extends Controller
     public function update(RecipeUpdateRequest $request, Recipe $recipe)
     {
         try {
+            // 追加の軽いバリデーション
+            $request->validate([
+                'temp_image_url' => ['nullable', 'url', 'max:2048'],
+            ]);
 
             // 画像アップロード処理
             $newImageUrl = null;
 
-            // 1. temp_image_urlが送信された場合の処理（優先）
-            if ($request->has('temp_image_url') && !empty($request->temp_image_url)) {
-                try {
-                    $newImageUrl = $this->moveTempImageToPermanent($request->temp_image_url);
-                    \Log::info('Temp image moved to permanent storage (update)', [
-                        'temp_url' => $request->temp_image_url,
-                        'permanent_url' => $newImageUrl
-                    ]);
-                } catch (\Exception $e) {
-                    \Log::error('Failed to move temp image (update)', [
-                        'temp_url' => $request->temp_image_url,
-                        'error' => $e->getMessage()
-                    ]);
-                    // temp_image_urlの処理に失敗した場合は通常のアップロード処理に進む
+            // 1) フロントでFirebaseに直アップ → そのURLをそのまま保存
+            if ($request->filled('temp_image_url')) {
+                $url  = $request->input('temp_image_url');
+                $host = parse_url($url, PHP_URL_HOST);
+
+                // 許可するホストだけ通す（お好みで緩めてもOK）
+                $allowed = ['firebasestorage.googleapis.com', 'firebasestorage.app'];
+                if ($host && Str::endsWith($host, $allowed)) {
+                    $newImageUrl = $url;
+                } else {
+                    \Log::warning('Rejected temp_image_url host on update', ['host' => $host, 'url' => $url]);
                 }
+
+            // 2) 直接ファイルが来たときのフォールバック（ローカル保存）
+            } elseif ($request->hasFile('image')) {
+                $path = $request->file('image')->store('public/recipes');
+                $newImageUrl = Storage::url($path); // "/storage/xxx"
             }
 
-            // 2. 通常のファイルアップロード処理
-            if (!$newImageUrl && $request->hasFile('image')) {
-                $newImageUrl = $this->uploadToFirebaseStorage($request->file('image'));
+            // 古い画像の削除は「自分で消せるものだけ」（=ローカル）
+            if ($newImageUrl && $recipe->image_url && Str::startsWith($recipe->image_url, '/storage/')) {
+                $oldPath = str_replace('/storage/', 'public/', $recipe->image_url);
+                Storage::delete($oldPath);
             }
 
-            // 古い画像を削除（新しい画像がアップロードされた場合のみ）
-            if ($newImageUrl && $recipe->image_url) {
-                $this->deleteOldImage($recipe->image_url);
-            }
+            // 本体フィールド
+            $recipe->fill([
+                'title'        => $request->title,
+                'genre'        => $request->genre,
+                'servings'     => $request->servings,
+                'ingredients'  => $request->ingredients,
+                'instructions' => $request->instructions,
+                'is_published' => $request->get('is_published', $recipe->is_published),
+            ]);
 
             // 新しい画像URLがある場合のみ更新
             if ($newImageUrl) {
                 $recipe->image_url = $newImageUrl;
             }
 
-
-            $recipe->update([
-                'title' => $request->title,
-                'genre' => $request->genre,
-                'servings' => $request->servings,
-                'ingredients' => $request->ingredients,
-                'instructions' => $request->instructions,
-                'is_published' => $request->get('is_published', $recipe->is_published)
-            ]);
+            $recipe->save();
 
             return response()->json([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => 'レシピが更新されました',
-                'data' => new AdminRecipeResource($recipe)
+                'data'    => new AdminRecipeResource($recipe),
             ]);
 
         } catch (\Exception $e) {

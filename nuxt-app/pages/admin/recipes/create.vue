@@ -136,30 +136,25 @@ const isSaving = ref(false)
 const savedRecipes = ref([])
 const currentEditingRecipe = ref(null)
 
-const uploadTempImage = async (file) => {
-  try {
+const uploadRecipeImage = async (file) => {
     const { $auth } = useNuxtApp()
     const currentUser = $auth.currentUser
-    if (!currentUser) {
-      throw new Error('認証が必要です')
-    }
+    if (!currentUser) throw new Error('認証が必要です')
 
     const storage = getStorage()
+    const y = new Date().getFullYear()
+    const m = String(new Date().getMonth() + 1).padStart(2, '0')
     const fileName = `${Date.now()}_${file.name}`
-    const tempPath = `temp/${currentUser.uid}/${fileName}`
-    const imageRef = storageRef(storage, tempPath)
+    const finalPath = `recipes/${currentUser.uid}/${y}/${m}/${fileName}`
+    const imageRef = storageRef(storage, finalPath)
 
     const snapshot = await uploadBytes(imageRef, file)
     const downloadURL = await getDownloadURL(snapshot.ref)
 
     return {
       url: downloadURL,
-      path: tempPath
+      path: finalPath
     }
-  } catch (error) {
-    console.error('Firebase Storage一時保存エラー:', error)
-    throw error
-  }
 }
 
 const deleteTempImage = async (tempPath) => {
@@ -221,7 +216,7 @@ const saveRecipe = async () => {
     // 画像がある場合はFirebase Storageに一時保存
     if (selectedFile.value?.file) {
       try {
-        const tempImageData = await uploadTempImage(selectedFile.value.file)
+        const tempImageData = await uploadRecipeImage(selectedFile.value.file)
         recipeData.tempImageUrl = tempImageData.url
         recipeData.tempImagePath = tempImageData.path
       } catch (error) {
@@ -397,11 +392,13 @@ const submitRecipe = async () => {
     formData.append('ingredients', ingredientsText)
     formData.append('instructions', form.instructions.trim())
 
-    // 画像処理 - temp_image_urlを優先
-    if (selectedFile.value?.isTemp && selectedFile.value?.tempImageUrl) {
+    // 画像処理（URL優先）: ファイル選択があれば先にFirebaseへ直アップ→URLを送る
+    if (selectedFile.value?.file instanceof File) {
+      const { url } = await uploadRecipeImage(selectedFile.value.file)
+      formData.append('temp_image_url', url)
+    } else if (selectedFile.value?.isTemp && selectedFile.value?.tempImageUrl) {
+      // 既にプレビューにURLを持っている場合
       formData.append('temp_image_url', selectedFile.value.tempImageUrl)
-    } else if (selectedFile.value?.file instanceof File) {
-      formData.append('image', selectedFile.value.file)
     }
 
     // useApiのpostメソッドを使用（FormDataを自動検出）

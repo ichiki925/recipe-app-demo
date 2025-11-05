@@ -20,7 +20,7 @@ class RecipeUpdateRequest extends FormRequest
             'ingredients' => ['required', 'string'],
             'instructions' => ['required', 'string'],
             'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
-            'temp_image_url' => ['nullable', 'string'],
+            'temp_image_url' => ['nullable','url','max:2048'],
             'is_published' => ['boolean']
         ];
     }

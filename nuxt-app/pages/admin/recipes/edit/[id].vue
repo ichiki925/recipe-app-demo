@@ -140,34 +140,28 @@ const originalRecipe = ref(null)
 const originalRecipeId = ref(null)
 const isLoading = ref(true)
 
-const uploadTempImage = async (file) => {
-    try {
-        const { $auth } = useNuxtApp()
-        const currentUser = $auth.currentUser
-        if (!currentUser) {
-            throw new Error('認証が必要です')
-        }
+const uploadRecipeImage = async (file) => {
+    const { $auth } = useNuxtApp()
+    const currentUser = $auth.currentUser
+    if (!currentUser) throw new Error('認証が必要です')
 
-        const storage = getStorage()
-        const fileName = `${Date.now()}_${file.name}`
-        const tempPath = `temp/${currentUser.uid}/${fileName}`
-        const imageRef = storageRef(storage, tempPath)
+    const storage = getStorage()
 
-        console.log('Firebase Storageに一時保存中:', tempPath)
+    const y = new Date().getFullYear()
+    const m = String(new Date().getMonth() + 1).padStart(2, '0')
+    const fileName = `${Date.now()}_${file.name}`
+    const finalPath = `recipes/${currentUser.uid}/${y}/${m}/${fileName}`
+    const imageRef = storageRef(storage, finalPath)
 
-        const snapshot = await uploadBytes(imageRef, file)
-        const downloadURL = await getDownloadURL(snapshot.ref)
+    const snapshot = await uploadBytes(imageRef, file)
+    const downloadURL = await getDownloadURL(snapshot.ref)
 
-        console.log('一時保存完了:', downloadURL)
-        return {
-            url: downloadURL,
-            path: tempPath
-        }
-    } catch (error) {
-        console.error('Firebase Storage一時保存エラー:', error)
-        throw error
+    return {
+        url: downloadURL,
+        path: finalPath
     }
 }
+
 
 const deleteTempImage = async (tempPath) => {
     try {
@@ -291,7 +285,7 @@ const saveRecipe = async () => {
         // 画像がある場合はFirebase Storageに一時保存
         if (selectedFile.value?.file) {
             try {
-                const tempImageData = await uploadTempImage(selectedFile.value.file)
+                const tempImageData = await uploadRecipeImage(selectedFile.value.file)
                 recipeData.tempImageUrl = tempImageData.url
                 recipeData.tempImagePath = tempImageData.path
             } catch (error) {
@@ -502,13 +496,13 @@ const submitRecipe = async () => {
         formData.append('instructions', form.instructions.trim())
 
         // 画像処理 - 条件を明確化
-        if (selectedFile.value?.isTemp && selectedFile.value?.tempImageUrl) {
-            // 一時保存画像の場合
+        if (selectedFile.value?.file instanceof File) {
+            const { url } = await uploadRecipeImage(selectedFile.value.file)
+            formData.append('temp_image_url', url)
+        } else if (selectedFile.value?.isTemp && selectedFile.value?.tempImageUrl) {
             formData.append('temp_image_url', selectedFile.value.tempImageUrl)
-        } else if (selectedFile.value?.file instanceof File) {
-            // 新規選択画像の場合
-            formData.append('image', selectedFile.value.file)
         }
+
 
         const recipeId = route.params.id
         await postAuth(`admin/recipes/${recipeId}`, formData)
