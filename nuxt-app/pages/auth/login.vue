@@ -3,7 +3,7 @@
   <Head>
     <Meta name="robots" content="noindex, nofollow" />
     <Title>Login | Vanilla's Kitchen</Title>
-    <Link rel="canonical" href="https://vanilla-kitchen.com/auth/login" />
+    <Link rel="canonical" href="https://vanilla.k-ichiki.com/auth/login" />
   </Head>
 
     <div class="form-container">

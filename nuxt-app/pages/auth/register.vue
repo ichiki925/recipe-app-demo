@@ -3,7 +3,7 @@
     <Head>
         <Meta name="robots" content="noindex, nofollow" />
         <Title>Sign up | Vanilla's Kitchen</Title>
-        <Link rel="canonical" href="https://vanilla-kitchen.com/auth/register" />
+        <Link rel="canonical" href="https://vanilla.k-ichiki.com/auth/register" />
     </Head>
 
         <div class="form-container">
