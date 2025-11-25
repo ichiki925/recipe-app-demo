@@ -239,12 +239,12 @@ class RecipeController extends Controller
             if (!$user || !$user->isAdmin()) {
                 return response()->json(['error' => '認証または権限エラー'], 403);
             }
-            
+
             \Log::info('store payload', $request->only(['temp_image_url', 'image']));
 
-            
+
             $imageUrl = null;
-            
+
             // ① Firebase直アップのURLをそのまま保存（推奨パス）
             if ($request->filled('temp_image_url')) {
                 $url  = $request->input('temp_image_url');
