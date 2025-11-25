@@ -18,7 +18,7 @@ export const useAuth = () => {
     const _initOnce = useState('auth._initOnce', () => null)
 
     const API_BASE_URL = config.public.apiBaseUrl
-    const APP_BASE_URL = 'https://vanilla-kitchen.com'
+    const APP_BASE_URL = config.public.apiBaseUrl
 
     const getCurrentUser = () => $auth.currentUser
     const waitForAuth = () =>
